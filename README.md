@@ -62,6 +62,10 @@ The script provides a categorized summary of services, including:
 
 For each service, it shows which domain or subdomain it was associated with.
 
+Example Output:
+![image](https://github.com/user-attachments/assets/3b8d165b-da12-46d8-8cab-f25f1db7a76e)
+
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.

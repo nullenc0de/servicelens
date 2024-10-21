@@ -1,8 +1,8 @@
-# Domain Service Analyzer
+# Servicelens
 
 ## Description
 
-Domain Service Analyzer is a Python script that enumerates Microsoft 365 domains for a given domain and analyzes the services associated with it. It checks DNS records (TXT, DMARC, SPF) to identify various services used by the domain and its subdomains, categorizing them into different service types such as Email Services, Cloud Platforms, Analytics, and more.
+Servicelens is a Python script that enumerates Microsoft 365 domains for a given domain and analyzes the services associated with it. It checks DNS records (TXT, DMARC, SPF) to identify various services used by the domain and its subdomains, categorizing them into different service types such as Email Services, Cloud Platforms, Analytics, and more.
 
 ## Features
 
@@ -21,8 +21,8 @@ Domain Service Analyzer is a Python script that enumerates Microsoft 365 domains
 
 1. Clone this repository:
    ```
-   git clone https://github.com/yourusername/domain-service-analyzer.git
-   cd domain-service-analyzer
+   git clone https://github.com/nullenc0de/servicelens.git
+   cd servicelens
    ```
 
 2. Install the required dependencies:
@@ -35,13 +35,13 @@ Domain Service Analyzer is a Python script that enumerates Microsoft 365 domains
 Run the script with a domain name:
 
 ```
-python domain_service_analyzer.py -d example.com
+python servicelens.py -d example.com
 ```
 
 For verbose output, add the `-v` flag:
 
 ```
-python domain_service_analyzer.py -d example.com -v
+python servicelens.py -d example.com -v
 ```
 
 ## Output

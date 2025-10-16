@@ -344,6 +344,55 @@ def categorize_services(all_services):
 
     return service_categories
 
+def extract_verification_tokens(dns_info):
+    """Extract and categorize verification tokens from TXT records"""
+    verifications = defaultdict(list)
+
+    for domain, info in dns_info.items():
+        txt_records = info.get('txt', [])
+
+        for record in txt_records:
+            record_clean = record.strip('"')
+
+            # Microsoft verification
+            if record_clean.startswith('MS='):
+                verifications['Microsoft 365'].append(domain)
+            # Apple domain verification
+            elif 'apple-domain-verification' in record_clean:
+                verifications['Apple'].append(domain)
+            # DocuSign verification
+            elif 'docusign' in record_clean.lower():
+                verifications['DocuSign'].append(domain)
+            # MongoDB verification
+            elif 'mongodb-site-verification' in record_clean:
+                verifications['MongoDB'].append(domain)
+            # GlobalSign verification
+            elif 'globalsign-domain-verification' in record_clean:
+                verifications['GlobalSign'].append(domain)
+            # Google verification
+            elif 'google-site-verification' in record_clean:
+                verifications['Google'].append(domain)
+            # Adobe IDP verification
+            elif 'adobe-idp-site-verification' in record_clean:
+                verifications['Adobe IDP'].append(domain)
+            # Atlassian verification
+            elif 'atlassian-domain-verification' in record_clean:
+                verifications['Atlassian'].append(domain)
+            # Facebook domain verification
+            elif 'facebook-domain-verification' in record_clean:
+                verifications['Facebook'].append(domain)
+            # Zoom verification
+            elif 'zoom-domain-verification' in record_clean:
+                verifications['Zoom'].append(domain)
+            # Stripe verification
+            elif 'stripe-verification' in record_clean:
+                verifications['Stripe'].append(domain)
+            # Webex verification
+            elif 'cisco-ci-domain-verification' in record_clean:
+                verifications['Webex/Cisco'].append(domain)
+
+    return verifications
+
 def print_categorized_summary(categorized_services):
     print("\nCategorized Summary of Services:")
     print("=" * 80)
@@ -360,6 +409,125 @@ def print_categorized_summary(categorized_services):
                         print(f"     - {domain}")
                 else:
                     print(f"    Seen in: {next(iter(domains))}")
+
+def print_verification_summary(dns_info):
+    """Print a summary of discovered verification tokens and integrations"""
+    verifications = extract_verification_tokens(dns_info)
+
+    if not verifications:
+        return
+
+    print("\n" + "=" * 80)
+    print("Third-Party Integrations & Verifications")
+    print("=" * 80)
+
+    print("\nThe following services have domain ownership verification configured:")
+    for service, domains in sorted(verifications.items()):
+        count = len(domains)
+        if count > 1:
+            print(f"  • {service} ({count} verification records)")
+        else:
+            print(f"  • {service}")
+
+def print_comprehensive_summary(domain, all_services, categorized_services, dns_info):
+    """Print a comprehensive, human-readable summary of all findings"""
+    print("\n" + "=" * 80)
+    print(f"COMPREHENSIVE ANALYSIS SUMMARY: {domain}")
+    print("=" * 80)
+
+    # Email Security Status
+    domain_info = dns_info.get(domain, {})
+    print("\n📧 EMAIL SECURITY STATUS")
+    print("-" * 40)
+
+    if domain_info.get('dmarc'):
+        dmarc_policy = parse_dmarc_policy(domain_info['dmarc'])
+        policy = dmarc_policy.get('policy', 'none')
+        pct = dmarc_policy.get('percentage', '0')
+        print(f"  DMARC: ✓ Configured (Policy: {policy.upper()}, Enforcement: {pct}%)")
+    else:
+        print(f"  DMARC: ✗ Not configured - VULNERABLE to email spoofing")
+
+    if domain_info.get('spf'):
+        include_count = sum(record.count('include:') for record in domain_info['spf'])
+        ip4_count = sum(record.count('ip4:') for record in domain_info['spf'])
+        print(f"  SPF: ✓ Configured ({include_count} authorized services, {ip4_count} IP ranges)")
+    else:
+        print(f"  SPF: ✗ Not configured")
+
+    if domain_info.get('dkim'):
+        print(f"  DKIM: ✓ Found {len(domain_info['dkim'])} selector(s)")
+    else:
+        print(f"  DKIM: ~ No common selectors found")
+
+    # Infrastructure Summary
+    print("\n🌐 INFRASTRUCTURE")
+    print("-" * 40)
+
+    if domain_info.get('a'):
+        print(f"  IPv4 Addresses: {len(domain_info['a'])} address(es)")
+        for ip in domain_info['a'][:3]:
+            print(f"    - {ip}")
+        if len(domain_info['a']) > 3:
+            print(f"    ... and {len(domain_info['a']) - 3} more")
+
+    if domain_info.get('mx'):
+        print(f"  Mail Servers: {len(domain_info['mx'])} server(s)")
+        for priority, server in sorted(domain_info['mx'])[:2]:
+            print(f"    [{priority}] {server.rstrip('.')}")
+
+    if domain_info.get('ns'):
+        print(f"  Name Servers: {len(domain_info['ns'])} server(s)")
+        for ns in domain_info['ns'][:2]:
+            print(f"    - {ns.rstrip('.')}")
+
+    # Key Services
+    print("\n🔑 KEY SERVICES IDENTIFIED")
+    print("-" * 40)
+
+    important_categories = ['Email Services', 'Cloud Platforms', 'Security and Training',
+                           'Productivity and Collaboration']
+
+    for category in important_categories:
+        services = categorized_services.get(category, {})
+        if services:
+            print(f"\n  {category}:")
+            for service in sorted(services.keys())[:5]:
+                print(f"    • {service}")
+            if len(services) > 5:
+                print(f"    ... and {len(services) - 5} more")
+
+    # Verification Tokens
+    verifications = extract_verification_tokens(dns_info)
+    if verifications:
+        print("\n🔐 VERIFIED INTEGRATIONS")
+        print("-" * 40)
+        for service, _ in sorted(verifications.items()):
+            print(f"  ✓ {service}")
+
+    # Security Recommendations
+    print("\n💡 SECURITY RECOMMENDATIONS")
+    print("-" * 40)
+
+    recommendations = []
+
+    if not domain_info.get('dmarc') or parse_dmarc_policy(domain_info.get('dmarc', [])).get('policy') != 'reject':
+        recommendations.append("Implement DMARC with 'reject' policy to prevent email spoofing")
+
+    if not domain_info.get('mta_sts'):
+        recommendations.append("Enable MTA-STS to enforce TLS encryption for email delivery")
+
+    if not domain_info.get('caa'):
+        recommendations.append("Configure CAA records to restrict certificate issuance")
+
+    if not domain_info.get('dkim'):
+        recommendations.append("Verify DKIM configuration (may be using custom selectors)")
+
+    if recommendations:
+        for i, rec in enumerate(recommendations, 1):
+            print(f"  {i}. {rec}")
+    else:
+        print("  ✓ No critical security issues identified")
 
 def print_security_summary(dns_info):
     """Print a comprehensive security summary including email, TLS, and certificate policies"""
@@ -607,6 +775,12 @@ Examples:
     # Print categorized services
     categorized_services = categorize_services(all_services)
     print_categorized_summary(categorized_services)
+
+    # Print verification tokens summary
+    print_verification_summary(dns_info)
+
+    # Print comprehensive summary
+    print_comprehensive_summary(args.domain, all_services, categorized_services, dns_info)
 
     # Security report
     if args.security_report:
